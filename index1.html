@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtVision | Interactive Art Gallery</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #1a252f;
+            --success: #2ecc71;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background-color: #f9f9f9;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            color: var(--secondary);
+            margin-right: 10px;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+            margin-right: 20px;
+        }
+
+        .auth-btn {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .auth-btn:hover {
+            background-color: var(--secondary);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav li {
+            margin-left: 1.5rem;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            padding: 5px 0;
+            position: relative;
+        }
+
+        nav a:hover {
+            color: var(--secondary);
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background: var(--secondary);
+            left: 0;
+            bottom: 0;
+            transition: var(--transition);
+        }
+
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.8)), url('https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 6rem 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: var(--secondary);
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            border: 2px solid var(--secondary);
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: transparent;
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Gallery Controls */
+        .gallery-controls {
+            padding: 2rem 0;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .filter-btn {
+            background-color: var(--light);
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .search-box {
+            max-width: 500px;
+            margin: 1rem auto;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.8rem 1.5rem;
+            border-radius: 30px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+            padding-left: 3rem;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #777;
+        }
+
+        /* Gallery */
+        .gallery {
+            padding: 3rem 0;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            min-height: 400px;
+        }
+
+        .artwork {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .artwork:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .artwork-img {
+            height: 220px;
+            width: 100%;
+            object-fit: cover;
+        }
+
+        .artwork-info {
+            padding: 1.2rem;
+        }
+
+        .artwork-title {
+            font-weight: 700;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .artwork-artist {
+            color: var(--secondary);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .artwork-medium {
+            color: #777;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .artwork-price {
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+
+        /* About Section */
+        .about {
+            background-color: var(--light);
+            padding: 4rem 0;
+        }
+
+        .about-content {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        .about-text {
+            flex: 1;
+        }
+
+        .about-image {
+            flex: 1;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .about-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .section-title {
+            font-size: 2.2rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 70px;
+            height: 4px;
+            background-color: var(--secondary);
+        }
+
+        /* Admin Panel */
+        .admin-panel {
+            display: none;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            margin: 2rem auto;
+            max-width: 600px;
+        }
+
+        .admin-panel.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .btn-danger {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-modal.active {
+            display: flex;
+        }
+
+        .auth-form {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--shadow);
+        }
+
+        .auth-form h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.8rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #777;
+            transition: var(--transition);
+        }
+
+        .auth-tab.active {
+            color: var(--secondary);
+            border-bottom: 3px solid var(--secondary);
+            margin-bottom: -2px;
+        }
+
+        .auth-tab-content {
+            display: none;
+        }
+
+        .auth-tab-content.active {
+            display: block;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .loading i {
+            margin-right: 10px;
+            color: var(--secondary);
+        }
+
+        /* Success Message */
+        .success-message {
+            background-color: var(--success);
+            color: white;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            text-align: center;
+            display: none;
+        }
+
+        .success-message.active {
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 3rem 0 1.5rem;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .footer-column {
+            flex: 1;
+            min-width: 250px;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-column h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1.2rem;
+            color: var(--secondary);
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column li {
+            margin-bottom: 0.7rem;
+        }
+
+        .footer-column a {
+            color: #ddd;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-column a:hover {
+            color: var(--secondary);
+            padding-left: 5px;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+            margin-top: 1rem;
+        }
+
+        .social-icons a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: white;
+            transition: var(--transition);
+        }
+
+        .social-icons a:hover {
+            background-color: var(--secondary);
+            transform: translateY(-5px);
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            nav {
+                width: 100%;
+                margin-top: 1rem;
+                display: none;
+            }
+
+            nav.active {
+                display: block;
+            }
+
+            nav ul {
+                flex-direction: column;
+            }
+
+            nav li {
+                margin: 0 0 1rem 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+                position: absolute;
+                right: 20px;
+                top: 20px;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .about-content {
+                flex-direction: column;
+            }
+
+            .auth-buttons {
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <a href="#" class="logo">
+                <i class="fas fa-palette"></i>
+                ArtVision
+            </a>
+            <div class="auth-buttons" id="authButtons">
+                <button class="auth-btn" id="loginBtn">Login</button>
+                <button class="auth-btn" id="signupBtn">Sign Up</button>
+            </div>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <nav id="mainNav">
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#gallery">Gallery</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                    <li><a href="#" id="adminLink" style="display: none;">Admin Panel</a></li>
+                    <li><a href="#" id="logoutLink" style="display: none;">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Auth Modal -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-form">
+            <h2 id="authTitle">Login to ArtVision</h2>
+            <div class="auth-tabs">
+                <div class="auth-tab active" data-tab="login">Login</div>
+                <div class="auth-tab" data-tab="signup">Sign Up</div>
+            </div>
+            
+            <div class="auth-tab-content active" id="loginTab">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password">
+                </div>
+                <button class="btn btn-primary" id="doLogin">Login</button>
+                <div id="loginError" style="color: red; margin-top: 10px; display: none;"></div>
+            </div>
+            
+            <div class="auth-tab-content" id="signupTab">
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" placeholder="Create a password (min 6 chars)">
+                </div>
+                <div class="form-group">
+                    <label for="signupConfirmPassword">Confirm Password</label>
+                    <input type="password" id="signupConfirmPassword" placeholder="Confirm your password">
+                </div>
+                <button class="btn btn-primary" id="doSignup">Sign Up</button>
+                <div id="signupError" style="color: red; margin-top: 10px; display: none;"></div>
+            </div>
+            
+            <button class="btn btn-secondary" style="margin-top: 15px; width: 100%;" id="closeAuthModal">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="container">
+            <h1>Discover Beautiful Artworks</h1>
+            <p>Explore our curated collection of contemporary art from emerging and established artists around the world. Find the perfect piece for your collection.</p>
+            <a href="#gallery" class="cta-button">Explore Gallery</a>
+        </div>
+    </section>
+
+    <!-- Admin Panel -->
+    <section class="admin-panel" id="adminPanel">
+        <div class="container">
+            <h2 class="section-title">Add New Artwork</h2>
+            <div class="success-message" id="successMessage"></div>
+            <form id="artworkForm">
+                <div class="form-group">
+                    <label for="artworkTitle">Title *</label>
+                    <input type="text" id="artworkTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="artworkArtist">Artist *</label>
+                    <input type="text" id="artworkArtist" required>
+                </div>
+                <div class="form-group">
+                    <label for="artworkMedium">Medium *</label>
+                    <input type="text" id="artworkMedium" required>
+                </div>
+                <div class="form-group">
+                    <label for="artworkPrice">Price *</label>
+                    <input type="text" id="artworkPrice" required>
+                </div>
+                <div class="form-group">
+                    <label for="artworkCategory">Category *</label>
+                    <select id="artworkCategory" required>
+                        <option value="painting">Painting</option>
+                        <option value="sculpture">Sculpture</option>
+                        <option value="digital">Digital Art</option>
+                        <option value="photography">Photography</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="artworkImage">Image URL *</label>
+                    <input type="text" id="artworkImage" required>
+                </div>
+                <div class="form-group">
+                    <label for="artworkDescription">Description</label>
+                    <textarea id="artworkDescription" placeholder="Describe the artwork..."></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" class="btn btn-primary">Add Artwork</button>
+                    <button type="button" class="btn btn-secondary" id="cancelAdd">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Gallery Controls -->
+    <section class="gallery-controls">
+        <div class="container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search artworks by title, artist, or medium...">
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="painting">Paintings</button>
+                <button class="filter-btn" data-filter="sculpture">Sculptures</button>
+                <button class="filter-btn" data-filter="digital">Digital Art</button>
+                <button class="filter-btn" data-filter="photography">Photography</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery -->
+    <section class="gallery" id="gallery">
+        <div class="container">
+            <h2 class="section-title">Featured Artworks</h2>
+            <div class="loading" id="loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading artworks...
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- Artworks will be populated by JavaScript from Firebase -->
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about" id="about">
+        <div class="container">
+            <h2 class="section-title">About ArtVision</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <p>ArtVision is an online platform dedicated to showcasing exceptional contemporary artwork from talented artists worldwide. Our mission is to make art accessible to everyone, whether you're a seasoned collector or just beginning your art journey.</p>
+                    <br>
+                    <p>We carefully curate our collection to include a diverse range of styles, mediums, and perspectives. Each artwork in our gallery is selected for its unique vision, technical skill, and emotional resonance.</p>
+                    <br>
+                    <p>Our platform connects art lovers directly with artists, providing a transparent and supportive environment for the art community to thrive.</p>
+                </div>
+                <div class="about-image">
+                    <img src="https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="Art gallery interior">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>ArtVision</h3>
+                    <p>Your window to the world of contemporary art. Discover, explore, and collect exceptional artworks from global artists.</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-pinterest"></i></a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#gallery">Gallery</a></li>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#">Artists</a></li>
+                        <li><a href="#">Exhibitions</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Contact Info</h3>
+                    <ul>
+                        <li><i class="fas fa-map-marker-alt"></i> 123 Art Street, Creative City</li>
+                        <li><i class="fas fa-phone"></i> (123) 456-7890</li>
+                        <li><i class="fas fa-envelope"></i> info@artvision.com</li>
+                        <li><i class="fas fa-clock"></i> Mon-Fri: 9am-6pm</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2023 ArtVision Gallery. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Firebase Configuration - REPLACE WITH YOUR FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // DOM elements
+        const galleryGrid = document.getElementById('galleryGrid');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const searchInput = document.getElementById('searchInput');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mainNav = document.getElementById('mainNav');
+        const loading = document.getElementById('loading');
+        const authModal = document.getElementById('authModal');
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const closeAuthModal = document.getElementById('closeAuthModal');
+        const authTabs = document.querySelectorAll('.auth-tab');
+        const loginTab = document.getElementById('loginTab');
+        const signupTab = document.getElementById('signupTab');
+        const doLogin = document.getElementById('doLogin');
+        const doSignup = document.getElementById('doSignup');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const signupEmail = document.getElementById('signupEmail');
+        const signupPassword = document.getElementById('signupPassword');
+        const signupConfirmPassword = document.getElementById('signupConfirmPassword');
+        const loginError = document.getElementById('loginError');
+        const signupError = document.getElementById('signupError');
+        const adminPanel = document.getElementById('adminPanel');
+        const adminLink = document.getElementById('adminLink');
+        const logoutLink = document.getElementById('logoutLink');
+        const authButtons = document.getElementById('authButtons');
+        const artworkForm = document.getElementById('artworkForm');
+        const successMessage = document.getElementById('successMessage');
+        const cancelAdd = document.getElementById('cancelAdd');
+
+        // Current artworks array
+        let artworks = [];
+
+        // Initialize gallery
+        function renderGallery(items) {
+            galleryGrid.innerHTML = '';
+            
+            if (items.length === 0) {
+                galleryGrid.innerHTML = '<p style="text-align: center; grid-column: 1/-1; padding: 2rem;">No artworks found.</p>';
+                return;
+            }
+            
+            items.forEach(item => {
+                const artworkElement = document.createElement('div');
+                artworkElement.className = 'artwork';
+                artworkElement.setAttribute('data-category', item.category);
+                artworkElement.setAttribute('data-id', item.id);
+                
+                artworkElement.innerHTML = `
+                    <img src="${item.image}" alt="${item.title}" class="artwork-img">
+                    <div class="artwork-info">
+                        <h3 class="artwork-title">${item.title}</h3>
+                        <span class="artwork-artist">${item.artist}</span>
+                        <span class="artwork-medium">${item.medium}</span>
+                        ${item.description ? `<p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">${item.description}</p>` : ''}
+                        <div class="artwork-price">${item.price}</div>
+                    </div>
+                `;
+                
+                galleryGrid.appendChild(artworkElement);
+            });
+        }
+
+        // Filter artwork by category
+        function filterArtworks(category) {
+            if (category === 'all') {
+                return artworks;
+            }
+            return artworks.filter(artwork => artwork.category === category);
+        }
+
+        // Search artwork
+        function searchArtworks(query) {
+            query = query.toLowerCase();
+            return artworks.filter(artwork => 
+                artwork.title.toLowerCase().includes(query) ||
+                artwork.artist.toLowerCase().includes(query) ||
+                artwork.medium.toLowerCase().includes(query) ||
+                (artwork.description && artwork.description.toLowerCase().includes(query))
+            );
+        }
+
+        // Load artworks from Firebase
+        async function loadArtworks() {
+            try {
+                loading.style.display = 'block';
+                galleryGrid.style.display = 'none';
+                
+                const snapshot = await db.collection('artworks').orderBy('createdAt', 'desc').get();
+                artworks = [];
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    artworks.push({
+                        id: doc.id,
+                        ...data
+                    });
+                });
+                
+                renderGallery(artworks);
+                loading.style.display = 'none';
+                galleryGrid.style.display = 'grid';
+            } catch (error) {
+                console.error('Error loading artworks:', error);
+                loading.innerHTML = '<p style="color: var(--accent);">Error loading artworks. Please try again later.</p>';
+            }
+        }
+
+        // Add artwork to Firebase
+        async function addArtwork(artworkData) {
+            try {
+                await db.collection('artworks').add({
+                    ...artworkData,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showSuccess('Artwork added successfully!');
+                loadArtworks();
+                artworkForm.reset();
+            } catch (error) {
+                console.error('Error adding artwork:', error);
+                showSuccess('Error adding artwork. Please try again.', false);
+            }
+        }
+
+        // Show success message
+        function showSuccess(message, isSuccess = true) {
+            successMessage.textContent = message;
+            successMessage.style.backgroundColor = isSuccess ? 'var(--success)' : 'var(--accent)';
+            successMessage.classList.add('active');
+            
+            setTimeout(() => {
+                successMessage.classList.remove('active');
+            }, 3000);
+        }
+
+        // Auth state observer
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is signed in
+                authButtons.style.display = 'none';
+                adminLink.style.display = 'block';
+                logoutLink.style.display = 'block';
+                
+                // Check if user is admin (you can implement more sophisticated admin check)
+                if (user.email === 'admin@artvision.com') {
+                    adminPanel.style.display = 'block';
+                }
+            } else {
+                // User is signed out
+                authButtons.style.display = 'flex';
+                adminLink.style.display = 'none';
+                logoutLink.style.display = 'none';
+                adminPanel.style.display = 'none';
+            }
+        });
+
+        // Event listeners
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                const filteredItems = filterArtworks(button.dataset.filter);
+                renderGallery(filteredItems);
+            });
+        });
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim();
+            
+            if (query.length === 0) {
+                const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+                const filteredItems = filterArtworks(activeFilter);
+                renderGallery(filteredItems);
+            } else {
+                const searchResults = searchArtworks(query);
+                renderGallery(searchResults);
+            }
+        });
+
+        // Mobile menu toggle
+        mobileMenuBtn.addEventListener('click', () => {
+            mainNav.classList.toggle('active');
+            mobileMenuBtn.innerHTML = mainNav.classList.contains('active') 
+                ? '<i class="fas fa-times"></i>' 
+                : '<i class="fas fa-bars"></i>';
+        });
+
+        // Close mobile menu when clicking on a link
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                mainNav.classList.remove('active');
+                mobileMenuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            });
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if(targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if(targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Auth modal
+        loginBtn.addEventListener('click', () => {
+            authModal.classList.add('active');
+            switchAuthTab('login');
+        });
+
+        signupBtn.addEventListener('click', () => {
+            authModal.classList.add('active');
+            switchAuthTab('signup');
+        });
+
+        closeAuthModal.addEventListener('click', () => {
+            authModal.classList.remove('active');
+            clearAuthErrors();
+        });
+
+        // Auth tabs
+        authTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                switchAuthTab(tab.dataset.tab);
+            });
+        });
+
+        function switchAuthTab(tabName) {
+            authTabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            
+            loginTab.classList.toggle('active', tabName === 'login');
+            signupTab.classList.toggle('active', tabName === 'signup');
+            
+            document.getElementById('authTitle').textContent = 
+                tabName === 'login' ? 'Login to ArtVision' : 'Create an Account';
+                
+            clearAuthErrors();
+        }
+
+        function clearAuthErrors() {
+            loginError.style.display = 'none';
+            signupError.style.display = 'none';
+        }
+
+        // Login
+        doLogin.addEventListener('click', async () => {
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            
+            if (!email || !password) {
+                loginError.textContent = 'Please fill in all fields';
+                loginError.style.display = 'block';
+                return;
+            }
+            
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                authModal.classList.remove('active');
+                loginEmail.value = '';
+                loginPassword.value = '';
+            } catch (error) {
+                loginError.textContent = error.message;
+                loginError.style.display = 'block';
+            }
+        });
+
+        // Signup
+        doSignup.addEventListener('click', async () => {
+            const email = signupEmail.value;
+            const password = signupPassword.value;
+            const confirmPassword = signupConfirmPassword.value;
+            
+            if (!email || !password || !confirmPassword) {
+                signupError.textContent = 'Please fill in all fields';
+                signupError.style.display = 'block';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                signupError.textContent = 'Passwords do not match';
+                signupError.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                signupError.textContent = 'Password must be at least 6 characters';
+                signupError.style.display = 'block';
+                return;
+            }
+            
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+                authModal.classList.remove('active');
+                signupEmail.value = '';
+                signupPassword.value = '';
+                signupConfirmPassword.value = '';
+            } catch (error) {
+                signupError.textContent = error.message;
+                signupError.style.display = 'block';
+            }
+        });
+
+        // Logout
+        logoutLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        });
+
+        // Admin link
+        adminLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            adminPanel.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Add artwork form
+        artworkForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const artworkData = {
+                title: document.getElementById('artworkTitle').value,
+                artist: document.getElementById('artworkArtist').value,
+                medium: document.getElementById('artworkMedium').value,
+                price: document.getElementById('artworkPrice').value,
+                category: document.getElementById('artworkCategory').value,
+                image: document.getElementById('artworkImage').value,
+                description: document.getElementById('artworkDescription').value
+            };
+            
+            await addArtwork(artworkData);
+        });
+
+        cancelAdd.addEventListener('click', () => {
+            artworkForm.reset();
+        });
+
+        // Initialize the gallery
+        loadArtworks();
+
+        // Sample artworks for initial setup (uncomment to add sample data)
+        // You should run this once to populate your Firebase database
+        
+        async function addSampleArtworks() {
+            const sampleArtworks = [
+                {
+                    title: "Golden Horizon",
+                    artist: "Maya Rodriguez",
+                    medium: "Oil on Canvas",
+                    price: "$2,800",
+                    category: "painting",
+                    image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                    description: "A beautiful sunset over golden fields"
+                },
+                {
+                    title: "Abstract Thoughts",
+                    artist: "David Chen",
+                    medium: "Acrylic",
+                    price: "$1,950",
+                    category: "painting",
+                    image: "https://images.unsplash.com/photo-1543857778-c4a1a569e388?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                    description: "Colorful abstract expressionist painting"
+                },
+                {
+                    title: "Marble Serenity",
+                    artist: "Isabella Moretti",
+                    medium: "Marble Sculpture",
+                    price: "$5,200",
+                    category: "sculpture",
+                    image: "https://images.unsplash.com/photo-1563089145-599997674d42?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                    description: "Elegant marble sculpture of a female figure"
+                },
+                {
+                    title: "Digital Dreams",
+                    artist: "Alex Turner",
+                    medium: "Digital Art",
+                    price: "$850",
+                    category: "digital",
+                    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
+                    description: "Futuristic digital artwork"
+                }
+            ];
+            
+            for (const artwork of sampleArtworks) {
+                await db.collection('artworks').add({
+                    ...artwork,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            
+            console.log('Sample artworks added!');
+        }
+        
+        // Uncomment the line below to add sample artworks to Firebase
+        // addSampleArtworks();
+        
+    </script>
+</body>
+</html>
